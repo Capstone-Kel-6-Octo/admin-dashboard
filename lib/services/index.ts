@@ -6,3 +6,7 @@ export { ABTestingService } from "./ab-testing-service";
 export { ConsentService } from "./consent-service";
 export { LogService } from "./log-service";
 export { ModelService } from "./model-service";
+export { UserAnalyticsService } from "./user-analytics-service";
+export { DashboardService } from "./dashboard-service";
+export { PersonalizationService } from "./personalization-service";
+export { FeatureAnalyticsService } from "./feature-analytics-service";

@@ -1,23 +1,10 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import {
-  Activity,
-  CreditCard,
-  PiggyBank,
-  TrendingUp,
-  Shield,
-  Sliders,
-  ToggleLeft,
-  ToggleRight,
-  Info,
-  Save,
-  RotateCcw,
-  RefreshCw,
-} from "lucide-react";
+import { Activity, CreditCard, PiggyBank, TrendingUp, Shield, Sliders, ToggleLeft, ToggleRight, Info, Save, RotateCcw, RefreshCw } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "../ui/card";
 import { Button } from "../ui/button";
-import { FeatureService, LogService } from "../../lib/services";
+import { FeatureAnalyticsService, LogService } from "../../lib/services";
 
 interface AppFeature {
   id: string;
@@ -107,25 +94,32 @@ export function FeaturesView() {
 
   const fetchFeatureStats = async () => {
     setIsLoading(true);
+
     try {
-      const usage = await FeatureService.getFeaturesUsage();
-      if (Array.isArray(usage) && usage.length > 0) {
-        const updated = features.map(f => {
-          const match = usage.find((u: any) => u.feature_name.toLowerCase() === f.name.toLowerCase());
-          if (match) {
-            const userCount = parseInt(match.total_usage || "0", 10);
-            return {
-              ...f,
-              adoptionUsers: userCount,
-              clickCount: userCount >= 1000 ? `${(userCount / 1000).toFixed(1)}K` : String(userCount)
-            };
-          }
-          return f;
-        });
-        setFeatures(updated);
-      }
+      const analytics = await FeatureAnalyticsService.getAnalytics();
+
+      const usage = analytics?.feature_usage || [];
+
+      const totalUsage = usage.reduce((sum: number, item: any) => sum + Number(item.total_usage || 0), 0);
+
+      const updated = features.map((feature) => {
+        const match = usage.find((u: any) => u.feature_name.toLowerCase() === feature.name.toLowerCase().replace(/\s+/g, "_"));
+
+        const count = Number(match?.total_usage || 0);
+
+        const percentage = totalUsage > 0 ? Math.round((count / totalUsage) * 100) : 0;
+
+        return {
+          ...feature,
+          adoptionUsers: count,
+          adoptionPercentage: percentage,
+          clickCount: count >= 1000 ? `${(count / 1000).toFixed(1)}K` : String(count),
+        };
+      });
+
+      setFeatures(updated);
     } catch (e) {
-      console.warn("Gagal mengambil data live statistik interaksi fitur.", e);
+      console.warn("Gagal mengambil feature analytics", e);
     } finally {
       setIsLoading(false);
     }
@@ -142,7 +136,7 @@ export function FeaturesView() {
           const updatedState = !f.isActive;
           const percentChange = updatedState ? 1 : -1;
           const userChange = updatedState ? 120 : -120;
-          
+
           triggerNotification(`Fitur "${f.name}" diubah menjadi ${updatedState ? "AKTIF" : "NON-AKTIF"}. Ingat untuk mengeklik Simpan.`);
           return {
             ...f,
@@ -152,7 +146,7 @@ export function FeaturesView() {
           };
         }
         return f;
-      })
+      }),
     );
   };
 
@@ -166,14 +160,14 @@ export function FeaturesView() {
   const handleSave = async () => {
     setIsLoading(true);
     try {
-      const activeList = features.filter(f => f.isActive).map(f => f.name).join(", ");
-      
+      const activeList = features
+        .filter((f) => f.isActive)
+        .map((f) => f.name)
+        .join(", ");
+
       // Save logs to backend database audit trails
-      await LogService.createLog(
-        "TOGGLE_FEATURE",
-        `Mengupdate status aktif fitur. Fitur Aktif saat ini: [${activeList || "Tidak Ada"}].`
-      );
-      
+      await LogService.createLog("TOGGLE_FEATURE", `Mengupdate status aktif fitur. Fitur Aktif saat ini: [${activeList || "Tidak Ada"}].`);
+
       triggerNotification("Konfigurasi fitur berhasil disimpan ke server utama OCTO Mobile dan dicatat di audit logs!");
     } catch (e) {
       triggerNotification("Konfigurasi fitur disimpan secara lokal.");
@@ -203,19 +197,13 @@ export function FeaturesView() {
       {/* View Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-slate-800 tracking-tight leading-none flex items-center gap-2">
-            Feature Analytics
-          </h2>
-          <p className="text-xs text-slate-400 font-semibold leading-normal mt-2">
-            Usage statistics, toggle core engines, and interactive adoption control logs.
-          </p>
+          <h2 className="text-2xl font-bold text-slate-800 tracking-tight leading-none flex items-center gap-2">Feature Analytics</h2>
+          <p className="text-xs text-slate-400 font-semibold leading-normal mt-2">Usage statistics, toggle core engines, and interactive adoption control logs.</p>
         </div>
 
         {/* Action Controls */}
         <div className="flex items-center gap-3 shrink-0">
-          {isLoading && (
-            <RefreshCw className="w-4 h-4 animate-spin text-[#b3000d] mr-1" />
-          )}
+          {isLoading && <RefreshCw className="w-4 h-4 animate-spin text-[#b3000d] mr-1" />}
           <Button variant="outline" size="sm" onClick={handleReset} className="flex items-center gap-2">
             <RotateCcw className="w-3.5 h-3.5" />
             Reset Bawaan
@@ -246,12 +234,8 @@ export function FeaturesView() {
                   <IconComponent className="w-5 h-5 shrink-0" />
                 </div>
                 <div className="space-y-1">
-                  <h3 className="text-2xl font-bold text-slate-800 tracking-tight">
-                    {feat.clickCount}
-                  </h3>
-                  <p className="text-xs font-semibold text-slate-400">
-                    {feat.name}
-                  </p>
+                  <h3 className="text-2xl font-bold text-slate-800 tracking-tight">{feat.clickCount}</h3>
+                  <p className="text-xs font-semibold text-slate-400">{feat.name}</p>
                 </div>
               </div>
             </Card>
@@ -262,12 +246,8 @@ export function FeaturesView() {
       {/* Large Card: Feature Adoption Rate */}
       <Card hoverable={false} className="w-full">
         <CardHeader>
-          <CardTitle className="text-base font-bold text-slate-800">
-            Feature Adoption Rate
-          </CardTitle>
-          <CardDescription className="text-xs text-slate-400 font-semibold">
-            Percentage of users using each feature
-          </CardDescription>
+          <CardTitle className="text-base font-bold text-slate-800">Feature Adoption Rate</CardTitle>
+          <CardDescription className="text-xs text-slate-400 font-semibold">Percentage of users using each feature</CardDescription>
         </CardHeader>
         <CardContent className="mt-4 space-y-6">
           {features.map((feat) => (
@@ -282,10 +262,7 @@ export function FeaturesView() {
               </div>
               {/* Progress Bar Track */}
               <div className="w-full h-3 bg-slate-100/60 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-[#b3000d] rounded-full transition-all duration-500 ease-out"
-                  style={{ width: `${feat.adoptionPercentage}%` }}
-                />
+                <div className="h-full bg-[#b3000d] rounded-full transition-all duration-500 ease-out" style={{ width: `${feat.adoptionPercentage}%` }} />
               </div>
             </div>
           ))}
@@ -298,21 +275,14 @@ export function FeaturesView() {
           <div className="flex items-center gap-2.5">
             <Sliders className="w-5 h-5 text-[#b3000d]" />
             <div>
-              <CardTitle className="text-base font-bold text-slate-800">
-                Fitur Personalization & Core Engine
-              </CardTitle>
-              <CardDescription className="text-xs text-slate-400 font-semibold">
-                Aktifkan atau matikan modul personalisasi secara real-time untuk memengaruhi performa visual aplikasi.
-              </CardDescription>
+              <CardTitle className="text-base font-bold text-slate-800">Fitur Personalization & Core Engine</CardTitle>
+              <CardDescription className="text-xs text-slate-400 font-semibold">Aktifkan atau matikan modul personalisasi secara real-time untuk memengaruhi performa visual aplikasi.</CardDescription>
             </div>
           </div>
         </CardHeader>
         <CardContent className="divide-y divide-slate-100/60 mt-2">
           {features.map((feat) => (
-            <div
-              key={feat.id}
-              className="py-5 flex items-start justify-between gap-6 first:pt-3 last:pb-3 hover:bg-slate-50/30 px-3 rounded-xl transition-all"
-            >
+            <div key={feat.id} className="py-5 flex items-start justify-between gap-6 first:pt-3 last:pb-3 hover:bg-slate-50/30 px-3 rounded-xl transition-all">
               <div className="space-y-1.5 flex-1">
                 <div className="flex items-center gap-2.5">
                   <h4 className="text-sm font-bold text-slate-700">{feat.name}</h4>
@@ -321,30 +291,20 @@ export function FeaturesView() {
                       feat.category === "Recommendation"
                         ? "bg-blue-50 text-blue-600"
                         : feat.category === "Interface"
-                        ? "bg-orange-50 text-orange-600"
-                        : feat.category === "Notification"
-                        ? "bg-purple-50 text-purple-600"
-                        : "bg-red-50 text-[#b3000d]"
-                    }`}
-                  >
+                          ? "bg-orange-50 text-orange-600"
+                          : feat.category === "Notification"
+                            ? "bg-purple-50 text-purple-600"
+                            : "bg-red-50 text-[#b3000d]"
+                    }`}>
                     {feat.category}
                   </span>
                 </div>
-                <p className="text-xs font-semibold text-slate-400 max-w-2xl leading-relaxed">
-                  {feat.description}
-                </p>
+                <p className="text-xs font-semibold text-slate-400 max-w-2xl leading-relaxed">{feat.description}</p>
               </div>
 
               {/* Slider Toggle */}
-              <button
-                onClick={() => toggleFeature(feat.id)}
-                className="cursor-pointer text-slate-400 hover:text-slate-600 transition-transform active:scale-95 shrink-0"
-              >
-                {feat.isActive ? (
-                  <ToggleRight className="w-11 h-11 text-[#b3000d] stroke-[1.25]" />
-                ) : (
-                  <ToggleLeft className="w-11 h-11 stroke-[1.25]" />
-                )}
+              <button onClick={() => toggleFeature(feat.id)} className="cursor-pointer text-slate-400 hover:text-slate-600 transition-transform active:scale-95 shrink-0">
+                {feat.isActive ? <ToggleRight className="w-11 h-11 text-[#b3000d] stroke-[1.25]" /> : <ToggleLeft className="w-11 h-11 stroke-[1.25]" />}
               </button>
             </div>
           ))}

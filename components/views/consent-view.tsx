@@ -1,4 +1,4 @@
- "use client";
+"use client";
 
 import React, { useState, useEffect } from "react";
 import { ShieldCheck, Search, Filter, ArrowUpRight, ArrowDownRight, RefreshCw } from "lucide-react";
@@ -30,17 +30,17 @@ export function ConsentView() {
     loadData();
   }, []);
 
-  const totalAccepted = summary.find(s => s.consent_given === true || String(s.consent_given) === "true")?.total || 105420;
-  const totalDeclined = summary.find(s => s.consent_given === false || String(s.consent_given) === "false")?.total || 19433;
+  const acceptedRow = summary.find((s) => s.consent_given === true);
+  const declinedRow = summary.find((s) => s.consent_given === false);
+  const totalAccepted = Number(acceptedRow?.total ?? 0);
+  const totalDeclined = Number(declinedRow?.total ?? 0);
   const grandTotal = Number(totalAccepted) + Number(totalDeclined);
   const acceptPercentage = grandTotal > 0 ? ((Number(totalAccepted) / grandTotal) * 100).toFixed(1) : "84.4";
 
   // Filter logic
-  const filteredConsents = consents.filter(c => {
-    const matchesSearch = 
-      c.name.toLowerCase().includes(search.toLowerCase()) || 
-      c.email.toLowerCase().includes(search.toLowerCase());
-    
+  const filteredConsents = consents.filter((c) => {
+    const matchesSearch = c.name.toLowerCase().includes(search.toLowerCase()) || c.email.toLowerCase().includes(search.toLowerCase());
+
     if (filterState === "ALL") return matchesSearch;
     if (filterState === "ACCEPTED") return matchesSearch && c.consent_given;
     if (filterState === "DECLINED") return matchesSearch && !c.consent_given;
@@ -56,15 +56,12 @@ export function ConsentView() {
             <ShieldCheck className="w-6 h-6 text-[#b3000d]" />
             Consent Analytics
           </h2>
-          <p className="text-xs text-slate-400 font-semibold leading-normal mt-2">
-            User compliance, legal agreements, and policy opt-in/opt-out metrics.
-          </p>
+          <p className="text-xs text-slate-400 font-semibold leading-normal mt-2">User compliance, legal agreements, and policy opt-in/opt-out metrics.</p>
         </div>
         <button
           onClick={loadData}
           disabled={isLoading}
-          className="self-start sm:self-auto flex items-center gap-2 py-2 px-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 text-xs font-bold transition-all active:scale-95 cursor-pointer shadow-sm"
-        >
+          className="self-start sm:self-auto flex items-center gap-2 py-2 px-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 text-xs font-bold transition-all active:scale-95 cursor-pointer shadow-sm">
           <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? "animate-spin text-[#b3000d]" : ""}`} />
           Refresh Data
         </button>
@@ -76,9 +73,7 @@ export function ConsentView() {
           <div className="space-y-4">
             <span className="text-xs uppercase font-bold tracking-wider text-slate-400">Total Consent Audits</span>
             <div className="space-y-1">
-              <h3 className="text-3.5xl font-black text-slate-800 tracking-tight">
-                {grandTotal.toLocaleString()}
-              </h3>
+              <h3 className="text-3.5xl font-black text-slate-800 tracking-tight">{grandTotal.toLocaleString()}</h3>
               <p className="text-[11px] font-semibold text-slate-400 flex items-center gap-1">
                 <ArrowUpRight className="w-3.5 h-3.5 text-emerald-500" />
                 +14.2% dibanding bulan lalu
@@ -91,9 +86,7 @@ export function ConsentView() {
           <div className="space-y-4">
             <span className="text-xs uppercase font-bold tracking-wider text-slate-400">Persetujuan Diberikan (Accepted)</span>
             <div className="space-y-1">
-              <h3 className="text-3.5xl font-black text-emerald-600 tracking-tight">
-                {Number(totalAccepted).toLocaleString()}
-              </h3>
+              <h3 className="text-3.5xl font-black text-emerald-600 tracking-tight">{Number(totalAccepted).toLocaleString()}</h3>
               <p className="text-[11px] font-semibold text-slate-400 flex items-center gap-1">
                 Tingkat Penerimaan: <strong className="text-emerald-600">{acceptPercentage}%</strong>
               </p>
@@ -105,9 +98,7 @@ export function ConsentView() {
           <div className="space-y-4">
             <span className="text-xs uppercase font-bold tracking-wider text-slate-400">Persetujuan Ditolak (Declined)</span>
             <div className="space-y-1">
-              <h3 className="text-3.5xl font-black text-rose-600 tracking-tight">
-                {Number(totalDeclined).toLocaleString()}
-              </h3>
+              <h3 className="text-3.5xl font-black text-rose-600 tracking-tight">{Number(totalDeclined).toLocaleString()}</h3>
               <p className="text-[11px] font-semibold text-slate-400">
                 Penyebaran: <strong className="text-rose-600">{(100 - Number(acceptPercentage)).toFixed(1)}%</strong>
               </p>
@@ -129,16 +120,7 @@ export function ConsentView() {
               {/* SVG Ring Donut */}
               <svg className="w-48 h-48 transform -rotate-90" viewBox="0 0 100 100">
                 <circle cx="50" cy="50" r="40" fill="transparent" stroke="#f1f5f9" strokeWidth="11" />
-                <circle
-                  cx="50"
-                  cy="50"
-                  r="40"
-                  fill="transparent"
-                  stroke="#10b981"
-                  strokeWidth="11"
-                  strokeDasharray={`${Number(acceptPercentage) * 2.51} 251.2`}
-                  strokeLinecap="round"
-                />
+                <circle cx="50" cy="50" r="40" fill="transparent" stroke="#10b981" strokeWidth="11" strokeDasharray={`${Number(acceptPercentage) * 2.51} 251.2`} strokeLinecap="round" />
               </svg>
               {/* Absolute Center Text */}
               <div className="absolute flex flex-col items-center justify-center">
@@ -180,28 +162,20 @@ export function ConsentView() {
               <line x1="0" y1="100" x2="500" y2="100" stroke="#f8fafc" strokeWidth="1" />
               <line x1="0" y1="150" x2="500" y2="150" stroke="#f8fafc" strokeWidth="1" />
               {/* Accepted curve: 14500, 15100, 15900, 16200, 17400, 18200, 19500 */}
-              <path
-                d="M 10 150 Q 80 142 160 135 T 320 120 T 490 100"
-                fill="none"
-                stroke="#10b981"
-                strokeWidth="3.5"
-                strokeLinecap="round"
-              />
+              <path d="M 10 150 Q 80 142 160 135 T 320 120 T 490 100" fill="none" stroke="#10b981" strokeWidth="3.5" strokeLinecap="round" />
               {/* Declined curve: 2900, 2850, 2980, 3100, 3010, 3200, 3400 */}
-              <path
-                d="M 10 185 Q 80 186 160 184 T 320 182 T 490 180"
-                fill="none"
-                stroke="#f43f5e"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-              />
+              <path d="M 10 185 Q 80 186 160 184 T 320 182 T 490 180" fill="none" stroke="#f43f5e" strokeWidth="2.5" strokeLinecap="round" />
               {/* Coordinates highlight dot */}
               <circle cx="490" cy="100" r="5" fill="#10b981" />
               <circle cx="490" cy="180" r="4.5" fill="#f43f5e" />
             </svg>
             <div className="absolute top-0 right-0 flex items-center gap-3 bg-white/80 backdrop-blur-[2px] p-2 rounded-xl border border-slate-100 text-[10px] font-bold">
-              <span className="flex items-center gap-1"><span className="w-2 h-2 bg-emerald-500 rounded-full" /> Diterima</span>
-              <span className="flex items-center gap-1"><span className="w-2 h-2 bg-rose-500 rounded-full" /> Ditolak</span>
+              <span className="flex items-center gap-1">
+                <span className="w-2 h-2 bg-emerald-500 rounded-full" /> Diterima
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="w-2 h-2 bg-rose-500 rounded-full" /> Ditolak
+              </span>
             </div>
           </div>
           <div className="flex justify-between items-center text-[10px] text-slate-400 font-bold px-2 mt-2">
@@ -234,22 +208,17 @@ export function ConsentView() {
                 />
               </div>
               <div className="flex items-center border border-slate-200 rounded-xl overflow-hidden shrink-0 bg-white shadow-sm">
-                <button
-                  onClick={() => setFilterState("ALL")}
-                  className={`px-3 py-1.5 text-[10px] font-bold transition-all cursor-pointer ${filterState === "ALL" ? "bg-slate-900 text-white" : "text-slate-500 hover:text-slate-800"}`}
-                >
+                <button onClick={() => setFilterState("ALL")} className={`px-3 py-1.5 text-[10px] font-bold transition-all cursor-pointer ${filterState === "ALL" ? "bg-slate-900 text-white" : "text-slate-500 hover:text-slate-800"}`}>
                   Semua
                 </button>
                 <button
                   onClick={() => setFilterState("ACCEPTED")}
-                  className={`px-3 py-1.5 text-[10px] font-bold border-l border-slate-100 transition-all cursor-pointer ${filterState === "ACCEPTED" ? "bg-emerald-500 text-white" : "text-slate-500 hover:text-slate-800"}`}
-                >
+                  className={`px-3 py-1.5 text-[10px] font-bold border-l border-slate-100 transition-all cursor-pointer ${filterState === "ACCEPTED" ? "bg-emerald-500 text-white" : "text-slate-500 hover:text-slate-800"}`}>
                   Diterima
                 </button>
                 <button
                   onClick={() => setFilterState("DECLINED")}
-                  className={`px-3 py-1.5 text-[10px] font-bold border-l border-slate-100 transition-all cursor-pointer ${filterState === "DECLINED" ? "bg-rose-500 text-white" : "text-slate-500 hover:text-slate-800"}`}
-                >
+                  className={`px-3 py-1.5 text-[10px] font-bold border-l border-slate-100 transition-all cursor-pointer ${filterState === "DECLINED" ? "bg-rose-500 text-white" : "text-slate-500 hover:text-slate-800"}`}>
                   Ditolak
                 </button>
               </div>
@@ -310,7 +279,7 @@ export function ConsentView() {
                           year: "numeric",
                           hour: "2-digit",
                           minute: "2-digit",
-                          second: "2-digit"
+                          second: "2-digit",
                         })}
                       </td>
                     </tr>

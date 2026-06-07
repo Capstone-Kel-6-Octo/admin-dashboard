@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "../ui/card";
-import { ApiService } from "../../lib/api-service";
+import { UserAnalyticsService } from "../../lib/services";
 
 interface Segment {
   label: string;
@@ -13,56 +13,50 @@ interface Segment {
 
 export function SegmentDonut() {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-  const [segments, setSegments] = useState<Segment[]>([
-    { label: "New Users", percentage: 28, color: "#3b82f6", countText: "28%" },
-    { label: "Active Users", percentage: 52, color: "#10b981", countText: "52%" },
-    { label: "Inactive", percentage: 15, color: "#f59e0b", countText: "15%" },
-    { label: "Churned", percentage: 5, color: "#ef4444", countText: "5%" },
-  ]);
+  const [segments, setSegments] = useState<Segment[]>([]);
   const [totalCount, setTotalCount] = useState<number>(0);
   const [isLive, setIsLive] = useState<boolean>(false);
 
   useEffect(() => {
     async function loadSegments() {
       try {
-        const liveSegments = await ApiService.getPersonaDistribution();
-        if (Array.isArray(liveSegments) && liveSegments.length > 0) {
-          let total = 0;
-          liveSegments.forEach((seg: any) => {
-            total += parseInt(seg.total || "0", 10);
-          });
+        const result = await UserAnalyticsService.getAnalytics();
 
-          if (total > 0) {
-            // Map SQL segments to Donut display segments
-            const mapped: Segment[] = liveSegments.map((seg: any) => {
-              const count = parseInt(seg.total || "0", 10);
-              const percentage = Math.round((count / total) * 100);
-              let color = "#3b82f6"; // Blue
-              let label = seg.persona_label || "REGULER";
+        const distribution = result.segment_distribution || [];
 
-              if (label.toUpperCase() === "PRIORITAS") {
-                color = "#d4af37"; // Gold
-              } else if (label.toUpperCase() === "PENGUSAHA" || label.toUpperCase() === "BISNIS") {
-                color = "#0a2540"; // Corporate Blue
-              } else if (label.toUpperCase() === "REGULER") {
-                color = "#b3000d"; // Maroon Red
-              }
+        let total = 0;
 
-              return {
-                label,
-                percentage,
-                color,
-                countText: `${count} (${percentage}%)`,
-              };
-            });
+        distribution.forEach((item: any) => {
+          total += Number(item.total);
+        });
 
-            setSegments(mapped);
-            setTotalCount(total);
-            setIsLive(true);
+        const mapped: Segment[] = distribution.map((item: any) => {
+          const count = Number(item.total);
+          const percentage = total > 0 ? Math.round((count / total) * 100) : 0;
+
+          const label = item.persona_label || "UNKNOWN";
+
+          let color = "#b3000d";
+
+          if (label === "PRIORITAS") {
+            color = "#d4af37";
+          } else if (label === "PENGUSAHA") {
+            color = "#0a2540";
           }
-        }
-      } catch (e) {
-        console.warn("Gagal mengambil data segmentasi live, menggunakan simulator lokal.", e);
+
+          return {
+            label,
+            percentage,
+            color,
+            countText: `${count} (${percentage}%)`,
+          };
+        });
+
+        setSegments(mapped);
+        setTotalCount(total);
+        setIsLive(true);
+      } catch (err) {
+        console.error(err);
       }
     }
 
@@ -90,32 +84,17 @@ export function SegmentDonut() {
     <Card hoverable={false} className="w-full h-full">
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
-          <CardTitle className="text-base font-bold text-slate-800">
-            User Persona Segmentation
-          </CardTitle>
-          <CardDescription className="text-xs text-slate-400 font-medium">
-            {isLive ? "Live PostgreSQL segment distribution" : "Distribution by user status"}
-          </CardDescription>
+          <CardTitle className="text-base font-bold text-slate-800">User Persona Segmentation</CardTitle>
+          <CardDescription className="text-xs text-slate-400 font-medium">{isLive ? "Live PostgreSQL segment distribution" : "Distribution by user status"}</CardDescription>
         </div>
-        {isLive && (
-          <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-full px-2 py-0.5 animate-pulse">
-            Live DB
-          </span>
-        )}
+        {isLive && <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-full px-2 py-0.5 animate-pulse">Live DB</span>}
       </CardHeader>
       <CardContent className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-6">
         {/* Donut graphic */}
         <div className="relative" style={{ width: size, height: size }}>
           <svg width={size} height={size} className="transform -rotate-90">
             {/* Background ring */}
-            <circle
-              cx={center}
-              cy={center}
-              r={radius}
-              fill="transparent"
-              stroke="#f1f5f9"
-              strokeWidth={strokeWidth}
-            />
+            <circle cx={center} cy={center} r={radius} fill="transparent" stroke="#f1f5f9" strokeWidth={strokeWidth} />
 
             {/* Segment rings */}
             {computedSegments.map((seg) => {
@@ -142,13 +121,9 @@ export function SegmentDonut() {
 
           {/* Centered label */}
           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none select-none text-center px-4">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest max-w-[80px] truncate">
-              {hoveredIndex !== null ? segments[hoveredIndex].label : (isLive ? "Total Nasabah" : "Total")}
-            </span>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest max-w-[80px] truncate">{hoveredIndex !== null ? segments[hoveredIndex].label : isLive ? "Total Nasabah" : "Total"}</span>
             <span className="text-xl font-bold text-slate-800 tracking-tight">
-              {hoveredIndex !== null 
-                ? (isLive ? `${segments[hoveredIndex].percentage}%` : segments[hoveredIndex].countText) 
-                : (isLive ? totalCount.toLocaleString() : "100%")}
+              {hoveredIndex !== null ? (isLive ? `${segments[hoveredIndex].percentage}%` : segments[hoveredIndex].countText) : isLive ? totalCount.toLocaleString() : "100%"}
             </span>
           </div>
         </div>
@@ -160,18 +135,10 @@ export function SegmentDonut() {
               key={i}
               onMouseEnter={() => setHoveredIndex(i)}
               onMouseLeave={() => setHoveredIndex(null)}
-              className={`flex items-center justify-between p-2 rounded-xl border border-transparent transition-all duration-200 cursor-pointer ${
-                hoveredIndex === i ? "bg-slate-50 border-slate-100" : ""
-              }`}
-            >
+              className={`flex items-center justify-between p-2 rounded-xl border border-transparent transition-all duration-200 cursor-pointer ${hoveredIndex === i ? "bg-slate-50 border-slate-100" : ""}`}>
               <div className="flex items-center gap-2.5">
-                <span
-                  className="w-3 h-3 rounded-full shrink-0"
-                  style={{ backgroundColor: seg.color }}
-                />
-                <span className="text-xs font-semibold text-slate-600">
-                  {seg.label}
-                </span>
+                <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: seg.color }} />
+                <span className="text-xs font-semibold text-slate-600">{seg.label}</span>
               </div>
               <span className="text-xs font-bold text-slate-800">{seg.countText}</span>
             </div>

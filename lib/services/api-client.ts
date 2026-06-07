@@ -30,6 +30,18 @@ export const apiClient = {
       const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         headers: getHeaders(),
       });
+
+      const data = await response
+        .clone()
+        .json()
+        .catch(() => null);
+
+      console.log("================================");
+      console.log("ENDPOINT:", endpoint);
+      console.log("STATUS:", response.status);
+      console.log("DATA:", data);
+      console.log("================================");
+
       if (!response.ok) {
         console.warn(`[API Client] GET ${endpoint} returned status ${response.status}. Falling back to simulation data.`);
         return fallback;
@@ -43,8 +55,11 @@ export const apiClient = {
 
   post: async <T>(endpoint: string, body: any, fallback?: T): Promise<any> => {
     // If fallback is provided and we are in mock mode, return fallback
-    if (isMockMode() && fallback !== undefined) return fallback;
-    
+    if (isMockMode()) {
+      console.log("MOCK MODE:", endpoint);
+      return fallback;
+    }
+
     try {
       const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         method: "POST",
@@ -70,7 +85,7 @@ export const apiClient = {
 
   put: async <T>(endpoint: string, body: any, fallback?: T): Promise<any> => {
     if (isMockMode() && fallback !== undefined) return fallback;
-    
+
     try {
       const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         method: "PUT",
@@ -92,5 +107,5 @@ export const apiClient = {
       }
       throw e;
     }
-  }
+  },
 };

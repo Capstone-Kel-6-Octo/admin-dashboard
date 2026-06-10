@@ -16,17 +16,20 @@ export const AuthService = {
 
       if (data.token) {
         if (data.user.role !== "admin") {
-          throw new Error("Akses ditolak: Akun Anda belum memiliki role 'admin' di database PostgreSQL!");
+          throw new Error("Access Denied! You do not have permission to access this dashboard.");
         }
 
         localStorage.setItem("octo_admin_token", data.token);
-        localStorage.setItem("octo_admin_active_session", JSON.stringify({
-          name: data.user.name,
-          email: data.user.email,
-          jabatan: "Lead IT Administrator",
-          departemen: "IT & Personalization Core",
-          role: data.user.role,
-        }));
+        localStorage.setItem(
+          "octo_admin_active_session",
+          JSON.stringify({
+            name: data.user.name,
+            email: data.user.email,
+            jabatan: "Lead IT Administrator",
+            departemen: "IT & Personalization Core",
+            role: data.user.role,
+          }),
+        );
       }
       return data;
     } catch (e: any) {
@@ -50,5 +53,5 @@ export const AuthService = {
     } catch (e: any) {
       throw new Error(e.message || "Koneksi ke backend gagal");
     }
-  }
+  },
 };
